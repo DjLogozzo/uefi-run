@@ -122,9 +122,7 @@ fn main() {
         // Create NvVars
         let mut nv_vars = fs.root_dir().create_file("NvVars").unwrap();
         nv_vars.truncate().unwrap();
-        nv_vars
-            .write_all(include_bytes!("NvVars"))
-            .unwrap();
+        nv_vars.write_all(include_bytes!("NvVars")).unwrap();
     }
 
     let mut qemu_args = vec![
