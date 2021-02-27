@@ -119,10 +119,12 @@ fn main() {
         run_efi.truncate().unwrap();
         run_efi.write_all(&efi_exe_contents).unwrap();
 
-        // Create NvVars
-        let mut nv_vars = fs.root_dir().create_file("NvVars").unwrap();
-        nv_vars.truncate().unwrap();
-        nv_vars.write_all(include_bytes!("NvVars")).unwrap();
+        // Create startup.nsh
+        let mut startup_nsh = fs.root_dir().create_file("startup.nsh").unwrap();
+        startup_nsh.truncate().unwrap();
+        startup_nsh
+            .write_all(include_bytes!("startup.nsh"))
+            .unwrap();
     }
 
     let mut qemu_args = vec![
