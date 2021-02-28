@@ -77,7 +77,7 @@ fn main() {
         .map(|v| v.parse().expect("Failed to parse --size argument"))
         .unwrap();
     let user_qemu_args = matches.values_of("qemu_args").unwrap_or_default();
-    let mut additional_files = matches.values_of("files").unwrap_or_default();
+    let mut additional_files = matches.values_of("add_files").unwrap_or_default();
 
     // Install termination signal handler. This ensures that the destructor of
     // `temp_dir` which is constructed in the next step is really called and
