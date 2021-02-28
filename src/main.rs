@@ -50,6 +50,16 @@ fn main() {
                 .long("size"),
         )
         .arg(
+            clap::Arg::with_name("add_files")
+                .value_name("location_on_disk> <location_within_image")
+                .required(false)
+                .help("Additional files to be added to the efi image")
+                .multiple(true)
+                .number_of_values(2)
+                .short("f")
+                .long("add-file"),
+        )
+        .arg(
             clap::Arg::with_name("qemu_args")
                 .value_name("qemu_args")
                 .required(false)
@@ -67,6 +77,7 @@ fn main() {
         .map(|v| v.parse().expect("Failed to parse --size argument"))
         .unwrap();
     let user_qemu_args = matches.values_of("qemu_args").unwrap_or_default();
+    let mut additional_files = matches.values_of("files").unwrap_or_default();
 
     // Install termination signal handler. This ensures that the destructor of
     // `temp_dir` which is constructed in the next step is really called and
@@ -125,6 +136,25 @@ fn main() {
         startup_nsh
             .write_all(include_bytes!("startup.nsh"))
             .unwrap();
+
+        // Create user provided additional files
+        while let Some(outer) = additional_files.next() {
+            let mut inner = additional_files.next().unwrap().split('/');
+            let inner_file = inner.next_back().unwrap();
+
+            let mut user_file = fs.root_dir();
+            for path in inner {
+                if path.is_empty() {
+                    continue;
+                }
+                user_file = user_file.create_dir(path).unwrap();
+            }
+            let mut user_file = user_file.create_file(inner_file).unwrap();
+
+            let data = std::fs::read(outer).unwrap();
+            user_file.truncate().unwrap();
+            user_file.write_all(&data).unwrap();
+        }
     }
 
     let mut qemu_args = vec![
