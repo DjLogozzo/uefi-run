@@ -151,7 +151,13 @@ fn main() {
             }
             let mut user_file = user_file.create_file(inner_file).unwrap();
 
-            let data = std::fs::read(outer).unwrap();
+            let data = match std::fs::read(outer) {
+                Ok(data) => data,
+                Err(e) => {
+                    eprint!("Error reading file: {}\n{}\n", outer, e);
+                    std::process::exit(1);
+                }
+            };
             user_file.truncate().unwrap();
             user_file.write_all(&data).unwrap();
         }
