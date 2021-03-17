@@ -51,11 +51,15 @@ fn main() {
         )
         .arg(
             clap::Arg::with_name("add_files")
-                .value_name("location_on_disk> <location_within_image")
+                .value_name("location_on_disk>:<location_within_image")
                 .required(false)
                 .help("Additional files to be added to the efi image")
+                .long_help(
+                    "Additional files to be added to the efi image\n\
+                     If no image location is provided, it will default\n\
+                     to the root of the image with the same name as the provided file",
+                )
                 .multiple(true)
-                .number_of_values(2)
                 .short("f")
                 .long("add-file"),
         )
@@ -77,7 +81,7 @@ fn main() {
         .map(|v| v.parse().expect("Failed to parse --size argument"))
         .unwrap();
     let user_qemu_args = matches.values_of("qemu_args").unwrap_or_default();
-    let mut additional_files = matches.values_of("add_files").unwrap_or_default();
+    let additional_files = matches.values_of("add_files").unwrap_or_default();
 
     // Install termination signal handler. This ensures that the destructor of
     // `temp_dir` which is constructed in the next step is really called and
@@ -138,12 +142,30 @@ fn main() {
             .unwrap();
 
         // Create user provided additional files
-        while let Some(outer) = additional_files.next() {
-            let mut inner = additional_files.next().unwrap().split('/');
-            let inner_file = inner.next_back().unwrap();
-
+        for files in additional_files {
             let mut user_file = fs.root_dir();
+
+            let mut files = files.split(':');
+            // Safe to unwrap, there will never be an empty string passed as an arg
+            let outer = files.next().unwrap();
+
+            let inner = match files.next() {
+                // User provided an inner filename
+                Some(file) => file,
+                // No inner filename, default to the outer filename
+                // in the root dir of the image
+                None => {
+                    // Safe to unwrap because there will always be atleast
+                    // One string inside the argument
+                    outer.rsplit('/').next().unwrap()
+                }
+            };
+            let mut inner = inner.split('/');
+            // Safe to unwrap, inner is guarenteed to not be empty
+            let inner_file = inner.next_back().unwrap();
             for path in inner {
+                // Skip empty directory names
+                // (eg. if a user double slashes a path, /dir1//dir2/file)
                 if path.is_empty() {
                     continue;
                 }
